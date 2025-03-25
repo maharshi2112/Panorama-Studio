@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panorama Studio - Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #1e1e2f, #2a2a4a); min-height: 100vh; font-family: 'Arial', sans-serif; }
+        .nav-link:hover { color: #00d4ff; transition: color 0.3s ease; }
+        .video-feed { position: relative; width: 100%; padding-bottom: 75%; background: #111; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7); }
+        .video-feed video, .video-feed img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        .capture-indicator { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.8); padding: 10px 20px; border-radius: 25px; color: #00ffcc; text-shadow: 0 0 5px #00ffcc; }
+        .progress-bar { width: 100%; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #00d4ff, #00ffcc); width: 0%; transition: width 0.5s ease; }
+        .flash { animation: flashEffect 0.4s ease; }
+        @keyframes flashEffect { 0% { opacity: 1; } 50% { opacity: 0.5; background: rgba(255, 255, 255, 0.5); } 100% { opacity: 1; } }
+    </style>
+</head>
+<body class="text-white flex flex-col items-center justify-center">
+    <nav class="w-full p-4 bg-black bg-opacity-50">
+        <ul class="flex space-x-6 justify-center">
+            <li><a href="/" class="nav-link">Home</a></li>
+            <li><a href="/static/about.html" class="nav-link">About</a></li>
+        </ul>
+    </nav>
+    <div class="container mx-auto p-6 text-center animate__animated animate__fadeIn">
+        <h1 class="text-4xl font-bold mb-4 text-blue-400">Panorama Studio</h1>
+        <p class="text-lg mb-6">Create stunning 360° panoramas with ease.</p>
+
+        <!-- Project Overview -->
+        <div class="max-w-2xl mx-auto mb-8">
+            <h2 class="text-2xl font-semibold mb-2">Project Overview</h2>
+            <p class="text-gray-300">
+                Panorama Studio offers two modes: Real-time stitching as you capture, or capture up to 20 images and stitch later.
+                Rotate at 18° increments for a full 360° view. Powered by Flask and OpenCV.
+            </p>
+        </div>
+
+        <!-- Mode Selection -->
+        <div class="max-w-2xl mx-auto mb-4 flex justify-center gap-4">
+            <label class="flex items-center gap-2">
+                <input type="radio" name="mode" value="previous" checked class="form-radio text-blue-500">
+                <span>Capture First</span>
+            </label>
+            <label class="flex items-center gap-2">
+                <input type="radio" name="mode" value="realtime" class="form-radio text-blue-500">
+                <span>Real-time Stitching</span>
+            </label>
+        </div>
+
+        <!-- Video Feed and Live Panorama -->
+        <div class="video-feed mx-auto max-w-3xl">
+            <video id="videoFeed" autoplay muted></video>
+            <img id="livePano" style="display: none;" alt="Live Panorama">
+            <div id="captureIndicator" class="capture-indicator">Image 0/20 - Start at 0°</div>
+        </div>
+        <div class="progress-bar mt-4 max-w-3xl mx-auto">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <div class="mt-6 flex flex-wrap justify-center gap-4">
+            <button id="startCameraBtn" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full hover:from-blue-600 hover:to-cyan-600 transition-all">Start Camera</button>
+            <button id="captureBtn" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full hover:from-blue-600 hover:to-cyan-600 transition-all" disabled>Capture Image</button>
+            <button id="createBtn" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full hover:from-blue-600 hover:to-cyan-600 transition-all" disabled>Create Panorama</button>
+        </div>
+        <div class="mt-4 max-w-3xl mx-auto text-left text-gray-400">
+            <p class="mt-2">Rotate 18° between captures for a full 360° view.</p>
+        </div>
+
+        <!-- Previous Panoramas -->
+        <div class="mt-8 max-w-3xl mx-auto">
+            <h2 class="text-2xl font-semibold mb-4">Previous Panoramas</h2>
+            <div id="panoramaList" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const elements = {
+                videoFeed: document.getElementById('videoFeed'),
+                livePano: document.getElementById('livePano'),
+                startCameraBtn: document.getElementById('startCameraBtn'),
+                captureBtn: document.getElementById('captureBtn'),
+                createBtn: document.getElementById('createBtn'),
+                captureIndicator: document.getElementById('captureIndicator'),
+                panoramaList: document.getElementById('panoramaList'),
+                progressFill: document.getElementById('progressFill'),
+                modeRadios: document.getElementsByName('mode')
+            };
+
+            const state = {
+                imageCount: 0,
+                maxImages: 20,
+                angleIncrement: 18,
+                isProcessing: false,
+                lastCaptureTime: 0,
+                stream: null,
+                mode: 'previous'
+            };
+
+            function showNotification(message, isError = false) {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-2 rounded-full text-white animate__animated animate__fadeInDown ${
+                    isError ? 'bg-red-500' : 'bg-blue-500'
+                }`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                setTimeout(() => {
+                    notification.classList.replace('animate__fadeInDown', 'animate__fadeOutUp');
+                    setTimeout(() => notification.remove(), 500);
+                }, 3000);
+            }
+
+            async function initCamera() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    showNotification('Camera not supported by this browser.', true);
+                    return;
+                }
+                try {
+                    state.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    elements.videoFeed.srcObject = state.stream;
+                    await elements.videoFeed.play();
+                    showNotification(`Camera started! Mode: ${state.mode === 'realtime' ? 'Real-time Stitching' : 'Capture First'}`);
+                    elements.startCameraBtn.disabled = true;
+                    elements.captureBtn.disabled = false;
+                    elements.createBtn.disabled = true;
+                } catch (error) {
+                    showNotification('Camera access failed: ' + error.message + '. Ensure HTTPS and permissions.', true);
+                    console.error('Camera error:', error);
+                }
+            }
+
+            function updateStatus() {
+                fetch('/status')
+                    .then(response => response.json())
+                    .then(data => {
+                        state.imageCount = data.image_count;
+                        state.mode = data.mode;
+                        elements.captureIndicator.textContent = 
+                            `Image ${state.imageCount}/${state.maxImages} - ${
+                                data.next_angle === "Complete" ? "Complete" : `Next: ~${data.next_angle}°`
+                            }`;
+                        elements.progressFill.style.width = `${(state.imageCount / state.maxImages) * 100}%`;
+                        if (data.pano_data && state.mode === 'realtime') {
+                            elements.videoFeed.style.display = 'none';
+                            elements.livePano.style.display = 'block';
+                            elements.livePano.src = 'data:image/jpeg;base64,' + data.pano_data;
+                        } else {
+                            elements.videoFeed.style.display = 'block';
+                            elements.livePano.style.display = 'none';
+                        }
+                        updateUI();
+                    })
+                    .catch(error => showNotification('Error fetching status: ' + error.message, true));
+            }
+
+            function setMode(mode) {
+                fetch('/set_mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: mode })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        state.mode = data.mode;
+                        showNotification(`Mode set to: ${state.mode === 'realtime' ? 'Real-time Stitching' : 'Capture First'}`);
+                        updateStatus();
+                    }
+                })
+                .catch(error => showNotification('Error setting mode: ' + error.message, true));
+            }
+
+            function captureImage() {
+                if (state.isProcessing || state.imageCount >= state.maxImages || !state.stream) return;
+                const now = Date.now();
+                if (now - state.lastCaptureTime < 1000) {
+                    showNotification('Please wait 1 second between captures.');
+                    return;
+                }
+                state.lastCaptureTime = now;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = elements.videoFeed.videoWidth;
+                canvas.height = elements.videoFeed.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(elements.videoFeed, 0, 0);
+                const imageData = canvas.toDataURL('image/jpeg');
+
+                state.isProcessing = true;
+                updateUI();
+                fetch('/capture', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageData })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    state.isProcessing = false;
+                    if (data.success) {
+                        updateStatus();
+                        elements.videoFeed.classList.add('flash');
+                        setTimeout(() => elements.videoFeed.classList.remove('flash'), 400);
+                        if (navigator.vibrate) navigator.vibrate(100);
+                        showNotification(`Captured ${data.image_count}/${state.maxImages}! ${
+                            state.mode === 'realtime' ? 'Panorama updating live.' : ''
+                        }`);
+                    } else {
+                        showNotification('Capture failed.');
+                    }
+                })
+                .catch(error => {
+                    state.isProcessing = false;
+                    showNotification('Error capturing: ' + error.message, true);
+                });
+            }
+
+            function createPanorama() {
+                if (state.isProcessing || state.imageCount < 2) {
+                    showNotification('Capture at least 2 images first!');
+                    return;
+                }
+                state.isProcessing = true;
+                elements.captureIndicator.textContent = 'Creating 360° Panorama...';
+                updateUI();
+
+                fetch('/stitch', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        state.isProcessing = false;
+                        if (data.success) {
+                            savePanorama(data.panorama_url);
+                            showNotification('360° panorama created!');
+                            if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
+                            elements.videoFeed.style.display = 'block';
+                            elements.livePano.style.display = 'none';
+                        } else {
+                            showNotification('Stitching failed: ' + data.error, true);
+                        }
+                        updateStatus();
+                    })
+                    .catch(error => {
+                        state.isProcessing = false;
+                        showNotification('Error stitching: ' + error.message, true);
+                        updateStatus();
+                    });
+            }
+
+            function loadPanoramas() {
+                const panoramas = JSON.parse(localStorage.getItem('panoramas')) || [];
+                elements.panoramaList.innerHTML = panoramas.length === 0 ? '<p class="text-gray-400">No panoramas yet.</p>' : '';
+                panoramas.reverse().forEach((panorama, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center gap-4 p-4 bg-gray-800 bg-opacity-50 rounded-lg hover:bg-opacity-75 transition-all';
+                    item.innerHTML = `
+                        <img src="${panorama.url}" alt="Panorama ${index + 1}" class="w-24 h-16 object-cover rounded shadow">
+                        <div class="flex-1 text-left">
+                            <span class="block text-gray-300">${panorama.timestamp}</span>
+                            <span class="block text-gray-400">${panorama.imageCount} images</span>
+                        </div>
+                        <button class="px-4 py-1 bg-red-500 rounded hover:bg-red-600 transition-all" data-id="${index}">Delete</button>
+                    `;
+                    item.querySelector('button').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deletePanorama(index);
+                    });
+                    item.addEventListener('click', () => window.open(panorama.url, '_blank'));
+                    elements.panoramaList.appendChild(item);
+                });
+            }
+
+            function savePanorama(url) {
+                const panoramas = JSON.parse(localStorage.getItem('panoramas')) || [];
+                panoramas.push({
+                    timestamp: new Date().toLocaleString(),
+                    imageCount: state.imageCount,
+                    url: url
+                });
+                localStorage.setItem('panoramas', JSON.stringify(panoramas));
+                loadPanoramas();
+            }
+
+            function deletePanorama(index) {
+                if (!confirm('Delete this panorama?')) return;
+                const panoramas = JSON.parse(localStorage.getItem('panoramas')) || [];
+                const actualIndex = panoramas.length - 1 - index;
+                panoramas.splice(actualIndex, 1);
+                localStorage.setItem('panoramas', JSON.stringify(panoramas));
+                loadPanoramas();
+                showNotification('Panorama deleted.');
+            }
+
+            function updateUI() {
+                elements.captureBtn.disabled = state.isProcessing || state.imageCount >= state.maxImages || !state.stream;
+                elements.createBtn.disabled = state.isProcessing || state.imageCount < 2;
+                elements.captureBtn.textContent = state.isProcessing ? 'Processing...' : 
+                    state.imageCount >= state.maxImages ? 'All Captured' : 'Capture Image';
+                elements.createBtn.textContent = state.isProcessing ? 'Processing...' : 'Create Panorama';
+            }
+
+            elements.startCameraBtn.addEventListener('click', initCamera);
+            elements.captureBtn.addEventListener('click', captureImage);
+            elements.createBtn.addEventListener('click', createPanorama);
+            elements.modeRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    setMode(radio.value);
+                });
+            });
+
+            updateStatus();
+            loadPanoramas();
+            showNotification('Click "Start Camera" to begin. Ensure HTTPS and permissions.');
+        });
+    </script>
+</body>
+</html>

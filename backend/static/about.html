@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panorama Studio - About</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Animate.css CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e1e2f, #2a2a4a);
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+        .nav-link:hover {
+            color: #00d4ff;
+            transition: color 0.3s ease;
+        }
+        .team-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+        .team-card:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="text-white flex flex-col items-center justify-center">
+    <nav class="w-full p-4 bg-black bg-opacity-50">
+        <ul class="flex space-x-6 justify-center">
+            <li><a href="/" class="nav-link">Home</a></li>
+            <li><a href="/static/about.html" class="nav-link">About</a></li>
+        </ul>
+    </nav>
+    <div class="container mx-auto p-6 text-center animate__animated animate__fadeIn">
+        <h1 class="text-4xl font-bold mb-6 text-blue-400">About Panorama Studio</h1>
+        
+        <!-- Project Description -->
+        <div class="max-w-3xl mx-auto mb-8">
+            <p class="text-lg text-gray-300">
+                Panorama Studio is a web application crafted to simplify the creation of 360° panoramas. By leveraging OpenCV for advanced image stitching, it offers a seamless experience through a modern, animated interface built with lightweight HTML, CSS, and JavaScript. Whether you’re a professional photographer or an enthusiast, this tool makes panorama creation both accessible and enjoyable.
+            </p>
+        </div>
+
+        <!-- Team Details -->
+        <div class="max-w-3xl mx-auto mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Our Team</h2>
+            <p class="text-gray-400 mb-4">Team No: 18</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="team-card animate__animated animate__zoomIn">
+                    <h3 class="text-xl font-semibold text-blue-300">M. Maharshi</h3>
+                    <p class="text-gray-400">ID: 21eg104d63</p>
+                </div>
+                <div class="team-card animate__animated animate__zoomIn" style="animation-delay: 0.2s;">
+                    <h3 class="text-xl font-semibold text-blue-300">N. Nithin</h3>
+                    <p class="text-gray-400">ID: 21eg104d36</p>
+                </div>
+                <div class="team-card animate__animated animate__zoomIn" style="animation-delay: 0.4s;">
+                    <h3 class="text-xl font-semibold text-blue-300">S. Adarsh Goud</h3>
+                    <p class="text-gray-400">ID: 21eg104d37</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guide Details -->
+        <div class="max-w-3xl mx-auto mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Our Guide</h2>
+            <div class="team-card animate__animated animate__zoomIn">
+                <h3 class="text-xl font-semibold text-blue-300">Dr. Kumar Neeraj</h3>
+                <p class="text-gray-400">Designation: Assistant Professor</p>
+            </div>
+        </div>
+
+        <!-- Footer Note -->
+        <p class="mt-4 text-gray-400">
+            A Major Project by Team 18 | Anurag University
+        </p>
+    </div>
+</body>
+</html>

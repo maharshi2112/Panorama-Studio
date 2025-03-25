@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Certificates (sensitive, regenerate on run)
+cert.pem
+key.pem
+
+# Static output files
+static/panorama_*.jpg
