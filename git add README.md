@@ -16,5 +16,5 @@ A web-based tool for creating 360° panoramas using Flask and OpenCV. Supports t
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/Panorama-Studio.git
+   git clone https://github.com/maharshi2112/Panorama-Studio.git
    cd Panorama-Studio
