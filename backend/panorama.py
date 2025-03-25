@@ -171,9 +171,4 @@ def status():
     })
 
 if __name__ == '__main__':
-    if not os.path.exists('static'):
-        os.makedirs('static')
-    generate_self_signed_cert()
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain('cert.pem', 'key.pem')
     app.run(host='0.0.0.0', port=5000, debug=True, ssl_context=context)
